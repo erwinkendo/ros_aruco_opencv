@@ -32,12 +32,27 @@ namespace aruco_opencv
 struct BoardDescription
 {
   std::string name;
-  bool frame_at_center;
-  int markers_x;
-  int markers_y;
-  double marker_size;
-  double separation;
-  int first_id;
+  std::string type = "grid";  // "grid" (ArUco GridBoard) or "charuco"
+  bool frame_at_center = false;
+  // grid
+  int markers_x = 0;
+  int markers_y = 0;
+  double separation = 0.0;
+  int first_id = 0;
+  // charuco: number of chessboard squares along the board X (width) and Y (height) axes
+  int squares_x = 0;
+  int squares_y = 0;
+  double square_size = 0.0;
+  // grid and charuco: side of one marker [m]
+  double marker_size = 0.0;
+};
+
+struct LoadedBoard
+{
+  std::string name;
+  cv::Ptr<cv::aruco::Board> board;
+  // cv::aruco::Board is not polymorphic in OpenCV 4.6, so a ChArUco board cannot be told apart by a cast
+  bool is_charuco = false;
 };
 
 class BoardLoader {
@@ -45,7 +60,7 @@ public:
   static bool load_from_file(
     const std::string & path,
     const cv::Ptr<cv::aruco::Dictionary> & dictionary,
-    std::vector<std::pair<std::string, cv::Ptr<cv::aruco::Board>>> & out_boards,
+    std::vector<LoadedBoard> & out_boards,
     std::string & error_message);
 };
 

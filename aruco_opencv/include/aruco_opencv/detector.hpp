@@ -31,6 +31,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/camera_info.hpp"
 #include "geometry_msgs/msg/pose.hpp"
+#include "aruco_opencv/board_loader.hpp"
 #include "aruco_opencv/utils.hpp"
 #include "aruco_opencv/parameters.hpp"
 #include "aruco_opencv_msgs/msg/marker_pose.hpp"
@@ -50,7 +51,7 @@ public:
   void set_camera_intrinsics(const cv::Mat & camera_matrix, const cv::Mat & dist_coeffs);
   void update_camera_info(const sensor_msgs::msg::CameraInfo & cam_info, bool image_is_rectified);
   void get_intrinsics(cv::Mat & camera_matrix, cv::Mat & dist_coeffs) const;
-  void set_boards(const std::vector<std::pair<std::string, cv::Ptr<cv::aruco::Board>>> & boards);
+  void set_boards(const std::vector<LoadedBoard> & boards);
   cv::Ptr<cv::aruco::Dictionary> get_dictionary();
 
   /**
@@ -81,6 +82,7 @@ public:
 
   /**
    * @brief Estimates poses of known boards from detected markers
+   * @param image Input image (needed to refine ChArUco chessboard corners)
    * @param marker_ids IDs of detected markers
    * @param marker_corners Corners of detected markers
    * @param board_poses Output vector of estimated board poses
@@ -88,6 +90,7 @@ public:
    * @param tvecs Output translation vectors of estimated board poses
    */
   void estimate_board_poses(
+    const cv::Mat & image,
     const std::vector<int> & marker_ids,
     const std::vector<std::vector<cv::Point2f>> & marker_corners,
     std::vector<aruco_opencv_msgs::msg::BoardPose> & board_poses,
@@ -121,7 +124,7 @@ private:
   cv::Mat camera_matrix_;
   cv::Mat distortion_coeffs_;
   cv::Mat marker_obj_points_;
-  std::vector<std::pair<std::string, cv::Ptr<cv::aruco::Board>>> boards_;
+  std::vector<LoadedBoard> boards_;
 
   DetectorParams params_{};
 

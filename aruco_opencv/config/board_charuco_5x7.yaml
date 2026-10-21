@@ -1,0 +1,10 @@
+# ChArUco board 5 x 7 squares, DICT_5X5_100 (run the tracker with marker_dict: 5X5_100).
+# Board frame (OpenCV): origin at the top-left outer corner of the printed board, X along the
+# width (squares_x), Y down the page (squares_y), Z into the board. TF frame: board_<name>.
+# Marker ids are 0..N-1 (17 markers for 5x7). Sizes in metres, measure them on the print.
+- name: charuco
+  type: charuco
+  squares_x: 5
+  squares_y: 7
+  square_size: 0.030
+  marker_size: 0.015

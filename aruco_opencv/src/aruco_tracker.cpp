@@ -74,7 +74,7 @@ class ArucoTracker : public rclcpp_lifecycle::LifecycleNode
   rclcpp::Time callback_start_time_;
 
   // Aruco
-  std::vector<std::pair<std::string, cv::Ptr<cv::aruco::Board>>> boards_;
+  std::vector<LoadedBoard> boards_;
   std::unique_ptr<ArucoDetector> detector_;
 
   // Tf2
@@ -292,7 +292,7 @@ protected:
     RCLCPP_INFO_STREAM(get_logger(),
         "Trying to load board descriptions from " << params_.board_descriptions_path);
     std::string err;
-    std::vector<std::pair<std::string, cv::Ptr<cv::aruco::Board>>> loaded;
+    std::vector<LoadedBoard> loaded;
     if (!BoardLoader::load_from_file(params_.board_descriptions_path, detector_->get_dictionary(),
         loaded, err))
     {
@@ -302,7 +302,7 @@ protected:
     boards_ = std::move(loaded);
     for (const auto & b : boards_) {
       RCLCPP_INFO_STREAM(get_logger(),
-          "Successfully loaded configuration for board '" << b.first << "'");
+          "Successfully loaded configuration for board '" << b.name << "'");
     }
   }
 
@@ -382,8 +382,8 @@ protected:
     detector_->estimate_marker_poses(marker_ids, marker_corners, detection.markers, rvec_final,
         tvec_final);
 
-    detector_->estimate_board_poses(marker_ids, marker_corners, detection.boards, rvec_final,
-        tvec_final);
+    detector_->estimate_board_poses(cv_ptr->image, marker_ids, marker_corners, detection.boards,
+        rvec_final, tvec_final);
 
     if (transform_poses_ && (detection.markers.size() > 0 || detection.boards.size() > 0)) {
       detection.header.frame_id = params_.output_frame;

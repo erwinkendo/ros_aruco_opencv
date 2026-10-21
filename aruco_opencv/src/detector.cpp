@@ -21,6 +21,7 @@
 #include "aruco_opencv/detector.hpp"
 #include "aruco_opencv/parameters.hpp"
 
+#include <opencv2/aruco/charuco.hpp>
 #include <opencv2/calib3d.hpp>
 
 namespace aruco_opencv
@@ -98,8 +99,7 @@ void ArucoDetector::get_intrinsics(cv::Mat & camera_matrix, cv::Mat & dist_coeff
 }
 
 void ArucoDetector::set_boards(
-  const std::vector<std::pair<std::string,
-  cv::Ptr<cv::aruco::Board>>> & boards)
+  const std::vector<LoadedBoard> & boards)
 {
   boards_ = boards;
 }
@@ -246,6 +246,7 @@ void ArucoDetector::estimate_marker_poses(
 }
 
 void ArucoDetector::estimate_board_poses(
+  const cv::Mat & image,
   const std::vector<int> & marker_ids,
   const std::vector<std::vector<cv::Point2f>> & marker_corners,
   std::vector<aruco_opencv_msgs::msg::BoardPose> & board_poses,
@@ -260,13 +261,31 @@ void ArucoDetector::estimate_board_poses(
   }
 
   for (const auto & board_desc : boards_) {
-    const std::string name = board_desc.first;
-    auto & board = board_desc.second;
+    const std::string & name = board_desc.name;
+    const auto & board = board_desc.board;
 
     cv::Vec3d rvec, tvec;
-    int valid = cv::aruco::estimatePoseBoard(marker_corners, marker_ids, board,
-                                             camera_matrix, distortion_coeffs, rvec, tvec);
-    if (valid > 0) {
+    bool valid = false;
+#if !(CV_VERSION_MAJOR > 4 || (CV_VERSION_MAJOR == 4 && CV_VERSION_MINOR >= 7))
+    if (board_desc.is_charuco) {
+      auto charuco = std::static_pointer_cast<cv::aruco::CharucoBoard>(board);
+      // Pose from the interpolated chessboard corners (sub-pixel, works with partial views),
+      // not from the marker corners.
+      std::vector<cv::Point2f> charuco_corners;
+      std::vector<int> charuco_ids;
+      cv::aruco::interpolateCornersCharuco(
+        marker_corners, marker_ids, image, charuco, charuco_corners, charuco_ids,
+        camera_matrix, distortion_coeffs);
+      valid = charuco_ids.size() >= 4 && cv::aruco::estimatePoseCharucoBoard(
+        charuco_corners, charuco_ids, charuco, camera_matrix, distortion_coeffs, rvec, tvec);
+    } else
+#endif
+    {
+      (void)image;
+      valid = cv::aruco::estimatePoseBoard(marker_corners, marker_ids, board,
+                                           camera_matrix, distortion_coeffs, rvec, tvec) > 0;
+    }
+    if (valid) {
       aruco_opencv_msgs::msg::BoardPose bpose;
       bpose.board_name = name;
       bpose.pose = convert_rvec_tvec(rvec, tvec);
