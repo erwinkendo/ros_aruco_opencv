@@ -268,6 +268,10 @@ void ArucoDetector::estimate_board_poses(
     bool valid = false;
 #if !(CV_VERSION_MAJOR > 4 || (CV_VERSION_MAJOR == 4 && CV_VERSION_MINOR >= 7))
     if (board_desc.is_charuco) {
+      if (marker_ids.empty()) {
+        // interpolateCornersCharuco asserts on an empty marker list
+        continue;
+      }
       auto charuco = std::static_pointer_cast<cv::aruco::CharucoBoard>(board);
       // Pose from the interpolated chessboard corners (sub-pixel, works with partial views),
       // not from the marker corners.
